@@ -21,7 +21,7 @@ public class TestBaseDW {
 
     public static DemoShopConfig shopConfig = ConfigFactory.create(DemoShopConfig.class, System.getProperties());
 
-    String basePathProduct = "/addproducttocart";
+    public String basePathProduct = "/addproducttocart";
 
     int productsToBuy;
     int productsInCart;
