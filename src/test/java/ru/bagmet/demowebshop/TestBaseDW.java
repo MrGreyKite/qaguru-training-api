@@ -9,42 +9,47 @@ import io.restassured.specification.RequestSpecification;
 import io.restassured.specification.ResponseSpecification;
 import org.aeonbits.owner.ConfigFactory;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import io.restassured.RestAssured;
+import org.junit.jupiter.api.BeforeEach;
 import ru.bagmet.demowebshop.config.DemoShopConfig;
 import static org.hamcrest.Matchers.*;
 
 import static io.restassured.RestAssured.given;
-import static io.restassured.RestAssured.requestSpecification;
 
 public class TestBaseDW {
 
     public static DemoShopConfig shopConfig = ConfigFactory.create(DemoShopConfig.class, System.getProperties());
 
     public String basePathProduct = "/addproducttocart";
+    protected int productsToBuy;
+    protected int productsInCart;
 
-    int productsToBuy;
-    int productsInCart;
+    protected static String authCookie;
+    protected static String customerCookie;
+
+    protected RequestSpecification requestSpec = new RequestSpecBuilder()
+            .setContentType("application/x-www-form-urlencoded; charset=UTF-8")
+            .setAccept(ContentType.JSON)
+            .log(LogDetail.ALL)
+            .build();
+
+    protected ResponseSpecification responseSpec = new ResponseSpecBuilder()
+            .expectStatusCode(200)
+            .log(LogDetail.BODY)
+            .expectBody("success", is(true))
+            .build();
 
     @BeforeAll
-    static void setUp(){
+    static void setUp() {
         RestAssured.baseURI = "http://demowebshop.tricentis.com";
-
-        RequestSpecification requestSpec = new RequestSpecBuilder()
-                .setContentType("application/x-www-form-urlencoded; charset=UTF-8")
-                .setAccept(ContentType.JSON)
-                .log(LogDetail.ALL)
-                .build();
-
-        ResponseSpecification responseSpec = new ResponseSpecBuilder()
-                .expectStatusCode(200)
-                .expectBody("success", is("true"))
-                .build();
     }
 
-    void doLogin() {
+    @BeforeEach
+    protected void doLogin() {
         Response loginResponse = given()
-                .spec(requestSpecification)
+                .spec(requestSpec)
                 .formParam("Email", shopConfig.getUserLogin())
                 .formParam("Password", shopConfig.getUserPassword())
                 .when()
@@ -54,14 +59,22 @@ public class TestBaseDW {
                 .cookie("NOPCOMMERCE.AUTH", notNullValue())
                 .extract().response();
 
-        String authCookie = loginResponse.getCookie("NOPCOMMERCE.AUTH");
-        String customerCookie = loginResponse.getCookie("Nop.customer");
+        authCookie = loginResponse.getCookie("NOPCOMMERCE.AUTH");
+        customerCookie = loginResponse.getCookie("Nop.customer");
     }
 
-    @AfterAll
-    static void tearDown(){
-        String authCookie = "";
-        String customerCookie = "";
+    @AfterEach
+    void logOut() {
+        given()
+                .spec(requestSpec)
+                .get("/logout")
+                .then()
+                .statusCode(200);
+
+        authCookie = null;
+        customerCookie = null;
+        System.out.println(authCookie);
     }
+
 
 }
